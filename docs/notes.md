@@ -1,44 +1,51 @@
 # AWS CLI Notes
 
 # Version
+```
 $ aws --version
 aws-cli/1.16.236 Python/3.7.4 Darwin/18.7.0 botocore/1.12.226
+```
 
-
-# s3
-## create s3 bucket
+# S3
+## Create bucket
 ```
 $ aws s3 mb s3://mynewbucket
 make_bucket: new_bucket
 ```
 
-### list s3 buckets
+## List buckets
 ```
 $ aws s3 ls
 2006-02-03 14:45:09 demo-bucket
 2006-02-03 14:45:09 new_bucket
 ```
 
-## upload a file
+## Upload a file
 ```
 $ aws s3 cp notes.md s3://myBucket/
 ```
 
-### optionally grant a specific access level
+### Optionally grant a specific access level
 ```
 --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers full=emailaddress=user@example.com
 ```
 
-## download a file
+## Download a file
+```
 $ aws s3 cp s3://myBucket/notes.md ./notes-s3.md
+```
 
-## remove file
+## Remove file
+```
 $ aws s3 rm s3://myBucket/notes.md
+```
 
-### sync a folder
+## Sync a folder
+```
 $ aws s3 sync . s3://myBucket/
+```
 
-### enable bucket versioning
+## Enable bucket versioning
 ```
 $ aws s3api put-bucket-versioning --bucket myBucket --versioning-configuration Status=Enabled
 
@@ -48,7 +55,7 @@ $ aws s3api get-bucket-versioning --bucket myBucket
 }
 ```
 
-## check object version
+## Check object version
 ```
 $ aws s3api list-object-versions --bucket myBucket --prefix foo.txt
 
@@ -85,13 +92,32 @@ $ aws s3api list-object-versions --bucket myBucket --prefix foo.txt
 ```
 
 # EC2
-## list AMIs
+## List AMIs
+```
 $ aws ec2 describe-images
+```
 
-### filter AMI
-$ aws ec2 describe-images --filters='Name=name,Values=amzn-ami-pv-2017.09.1.20171103-x86_64-ebs'
+## Filter Marketplace AMI by name
+```
+$ aws ec2 describe-images --owners aws-marketplace --filters='Name=name,Values=*FortiTester*'
+```
 
-### describe specific AMI
+## Filter AMI by Product Code and output only most recent AMI ID
+You can find the Product Code by browsing to the AWS Marketplace and subscribing to the product, the Product ID will be on the URL.
+
+```
+$ aws ec2 describe-images \
+    --owners aws-marketplace \
+    --filters 'Name=name,Values=*5430dfd0-10de-4578-9cbd-4a771e0c844a*' \
+    --query 'sort_by(Images, &CreationDate)[-1].[ImageId]' \
+    --output 'text'
+
+ami-02eac2c0129f6376b
+
+```
+
+
+## Describe specific AMI
 ```
 $ aws ec2 describe-images --image-ids ami-8104a4f8
 
@@ -133,14 +159,18 @@ $ aws ec2 describe-images --image-ids ami-8104a4f8
 ```
 
 # VPC
-## create vpc
+## Create VPC
+```
 $ aws ec2 create-vpc --cidr-block 10.0.0.0/16
+```
 
-### check vpc id
+### Check VPC ID
+```
 $ aws ec2 describe-vpcs --query 'Vpcs[].{ID:VpcId,CIDR:CidrBlock}'
 $ aws ec2 describe-vpcs --query 'Vpcs[].[VpcId, CidrBlock]'
+```
 
-### create subnets
+## Create subnets
 ```
 $ aws ec2 create-subnet \
     --vpc-id vpc-4c1f3a43 \
@@ -151,27 +181,29 @@ $ aws ec2 create-subnet \
     --cidr-block 10.0.2.0/24
 ```
 
-### check subnets
+### Check subnets
 ```
 $ aws ec2 describe-subnets \
     --filters="Name=vpc-id,Values=vpc-4c1f3a43" \
     --query 'Subnets[].[SubnetId, CidrBlock]'
 ```
 
-### create internet gateway
+## Create Internet Gateway
+```
 $ aws ec2 create-internet-gateway
+```
 
-### attach igw to subnet
+## Attach IGW to subnet
 ```
 $ aws ec2 attach-internet-gateway \
     --internet-gateway-id igw-d175e346 \
     --vpc-id vpc-4c1f3a43
 ```
 
-### create route table
+## Create route table
 $ aws ec2 create-route-table --vpc-id vpc-4c1f3a43
 
-### create internet gateway default route
+## Create internet gateway default route
 ```
 $ aws ec2 create-route \
     --route-table-id rtb-a4c16e12 \
@@ -179,21 +211,21 @@ $ aws ec2 create-route \
     --gateway-id igw-d175e346
 ```
 
-### associate subnet to route-table
+## Associate subnet to route-table
 ```
 $ aws ec2 associate-route-table \
     --route-table-id rtb-a4c16e12 \
     --subnet-id subnet-3feeafae
 ```
 
-## create security group
+## Create security group
 ```
 $ aws ec2 create-security-group \
     --group-name mySG \
     --description "this is a security group"
 ```
 
-### add rules to sg
+### Add rules to SG
 ```
 $ aws ec2 authorize-security-group-ingress \
     --group-name mySG \
@@ -202,13 +234,15 @@ $ aws ec2 authorize-security-group-ingress \
     --cidr 0.0.0.0/0
 ```
 
-### check security group
+### Check security group
+```
 $ aws ec2 describe-security-groups
+```
 
-## create key pair
+## Create key pair
 $ aws ec2 create-key-pair --key-name myKP
 
-## launch instance
+## Launch instance
 ```
 $ aws ec2 run-instances \
     --image-id ami-8104a4f8 \
@@ -219,7 +253,7 @@ $ aws ec2 run-instances \
     --subnet-id subnet-3feeafae
 ```
 
-## tag instance
+## Tag instance
 ```
 $ aws ec2 create-tags \
     --resources i-0dd0c30d6a9efdc7f \
