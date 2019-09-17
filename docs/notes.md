@@ -193,7 +193,7 @@ $ aws ec2 describe-subnets \
 $ aws ec2 create-internet-gateway
 ```
 
-## Attach IGW to subnet
+## Attach IGW to VPC
 ```
 $ aws ec2 attach-internet-gateway \
     --internet-gateway-id igw-d175e346 \
@@ -201,7 +201,9 @@ $ aws ec2 attach-internet-gateway \
 ```
 
 ## Create route table
+```
 $ aws ec2 create-route-table --vpc-id vpc-4c1f3a43
+```
 
 ## Create internet gateway default route
 ```
