@@ -7,20 +7,27 @@ aws-cli/1.16.236 Python/3.7.4 Darwin/18.7.0 botocore/1.12.226
 
 # s3
 ## create s3 bucket
-
+```
 $ aws s3 mb s3://mynewbucket
 make_bucket: new_bucket
+```
 
 ### list s3 buckets
+```
 $ aws s3 ls
 2006-02-03 14:45:09 demo-bucket
 2006-02-03 14:45:09 new_bucket
+```
 
 ## upload a file
+```
 $ aws s3 cp notes.md s3://myBucket/
+```
 
 ### optionally grant a specific access level
+```
 --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers full=emailaddress=user@example.com
+```
 
 ## download a file
 $ aws s3 cp s3://myBucket/notes.md ./notes-s3.md
@@ -32,15 +39,17 @@ $ aws s3 rm s3://myBucket/notes.md
 $ aws s3 sync . s3://myBucket/
 
 ### enable bucket versioning
-
+```
 $ aws s3api put-bucket-versioning --bucket myBucket --versioning-configuration Status=Enabled
 
 $ aws s3api get-bucket-versioning --bucket myBucket
 {
     "Status": "Enabled"
 }
+```
 
 ## check object version
+```
 $ aws s3api list-object-versions --bucket myBucket --prefix foo.txt
 
 {
@@ -73,8 +82,9 @@ $ aws s3api list-object-versions --bucket myBucket --prefix foo.txt
         }
     ]
 }
+```
 
-
+# EC2
 ## list AMIs
 $ aws ec2 describe-images
 
@@ -82,6 +92,7 @@ $ aws ec2 describe-images
 $ aws ec2 describe-images --filters='Name=name,Values=amzn-ami-pv-2017.09.1.20171103-x86_64-ebs'
 
 ### describe specific AMI
+```
 $ aws ec2 describe-images --image-ids ami-8104a4f8
 
 {
@@ -119,7 +130,9 @@ $ aws ec2 describe-images --image-ids ami-8104a4f8
         }
     ]
 }
+```
 
+# VPC
 ## create vpc
 $ aws ec2 create-vpc --cidr-block 10.0.0.0/16
 
@@ -128,6 +141,7 @@ $ aws ec2 describe-vpcs --query 'Vpcs[].{ID:VpcId,CIDR:CidrBlock}'
 $ aws ec2 describe-vpcs --query 'Vpcs[].[VpcId, CidrBlock]'
 
 ### create subnets
+```
 $ aws ec2 create-subnet \
     --vpc-id vpc-4c1f3a43 \
     --cidr-block 10.0.1.0/24
@@ -135,45 +149,58 @@ $ aws ec2 create-subnet \
 $ aws ec2 create-subnet \
     --vpc-id vpc-4c1f3a43 \
     --cidr-block 10.0.2.0/24
+```
 
 ### check subnets
+```
 $ aws ec2 describe-subnets \
     --filters="Name=vpc-id,Values=vpc-4c1f3a43" \
     --query 'Subnets[].[SubnetId, CidrBlock]'
+```
 
 ### create internet gateway
 $ aws ec2 create-internet-gateway
 
 ### attach igw to subnet
+```
 $ aws ec2 attach-internet-gateway \
     --internet-gateway-id igw-d175e346 \
     --vpc-id vpc-4c1f3a43
+```
 
 ### create route table
 $ aws ec2 create-route-table --vpc-id vpc-4c1f3a43
 
 ### create internet gateway default route
+```
 $ aws ec2 create-route \
     --route-table-id rtb-a4c16e12 \
     --destination-cidr-block 0.0.0.0/0 \
     --gateway-id igw-d175e346
+```
 
 ### associate subnet to route-table
+```
 $ aws ec2 associate-route-table \
     --route-table-id rtb-a4c16e12 \
     --subnet-id subnet-3feeafae
+```
 
 ## create security group
+```
 $ aws ec2 create-security-group \
     --group-name mySG \
     --description "this is a security group"
+```
 
 ### add rules to sg
+```
 $ aws ec2 authorize-security-group-ingress \
     --group-name mySG \
     --protocol tcp \
     --port 22 \
     --cidr 0.0.0.0/0
+```
 
 ### check security group
 $ aws ec2 describe-security-groups
@@ -182,6 +209,7 @@ $ aws ec2 describe-security-groups
 $ aws ec2 create-key-pair --key-name myKP
 
 ## launch instance
+```
 $ aws ec2 run-instances \
     --image-id ami-8104a4f8 \
     --count 2 \
@@ -189,44 +217,55 @@ $ aws ec2 run-instances \
     --key-name myKP \
     --security-group-ids sg-5cc1c99b \
     --subnet-id subnet-3feeafae
+```
 
 ## tag instance
+```
 $ aws ec2 create-tags \
     --resources i-0dd0c30d6a9efdc7f \
     --tags Key=Name,Value=myTag
-
+```
 
 ## list instances
 ### filter by instance-type, output only InstanceId
+```
 $ aws ec2 describe-instances \
     --filters "Name=instance-type,Values=t2.micro" \
     --query "Reservations[].Instances[].InstanceId"
+```
 
 ### filter by instance-type, output only InstanceId, InstanceType and PrivateIpAddress
+```
 $ aws ec2 describe-instances \
     --filters "Name=instance-id,Values=i-bec8f6fce6ba4df6f" \
     --query "Reservations[].Instances[].{InstanceId:InstanceId, 
                                         InstanceType:InstanceType,
                                         PrivateIpAddress:PrivateIpAddress}"
+```
 
 ### filter by tag
+```
 $ aws ec2 describe-instances \
     --filters "Name=tag:Name,Values=myTag"
+```
 
 ### filter by multiple ImageId
+```
 $ aws ec2 describe-instances \
     --filters "Name=image-id,Values=ami-8104a4f8,ami-8104a4f2"
-
+```
 
 ## terminate instance
+```
 $ aws ec2 terminate-instances \
     --instance-ids i-0dd0c30d6a9efdc7f
+```
 
 
-
-# route53
+# Route53
 
 ## list hosted zones
+```
 $ aws route53 list-hosted-zones
 {
     "HostedZones": [
@@ -241,8 +280,10 @@ $ aws route53 list-hosted-zones
         }
     ]
 }
+```
 
-
+## list records on specific zone
+```
 
 $ aws route53 list-resource-record-sets --hosted-zone-id Z3TL619FKOTSYM
 {
@@ -298,11 +339,10 @@ $ aws route53 list-resource-record-sets --hosted-zone-id Z3TL619FKOTSYM
         }
     ]
 }
+```
 
-
-# reference
+# Reference
 https://docs.aws.amazon.com/cli/latest/index.html
-
 
 
 # tags
