@@ -520,3 +520,164 @@ aws ec2 attach-network-interface \
 aws ec2 start-instances \
     --instance-ids $InstanceId
 ```
+
+
+#### Upgrade FTS
+In my test I had to upgrade the FTS to 3.6.0 before applying the lic, so I will create a new AMI after the upgrade
+
+aws ec2 create-image \
+    --instance-id $InstanceId \
+    --name "FortiTester-AWS-BYOL-3.6.0-build0119"
+
+
+ImageId_FTS=ami-069e15f99a99e31bc
+
+aws ec2 describe-images --filters="Name=image-id,Values=$ImageId_FTS"
+
+
+### DEPLOY FG
+
+### Create Network Interfaces - Client01 Port01 - FG
+```
+subnet_client01_port01_dut_desc=subnet_client01_port01_dut
+subnet_client01_port01_dut_IpAddr=172.17.81.250
+
+aws ec2 create-network-interface \
+    --subnet-id $SubnetId_subnet_client01 \
+    --groups $GroupId_sg_PermitAll_name \
+    --description $subnet_client01_port01_dut_desc \
+    --private-ip-address $subnet_client01_port01_dut_IpAddr \
+
+NetworkInterfaceId_subnet_client01_dut_port01=$(aws ec2 describe-network-interfaces \
+    --filter "Name=description,Values=$subnet_client01_port01_dut_desc" \
+    --query "NetworkInterfaces[].NetworkInterfaceId" \
+    --output text)
+
+aws ec2 create-tags \
+    --resources $NetworkInterfaceId_subnet_client01_dut_port01 \
+    --tags Key=Name,Value=$subnet_client01_port01_dut_desc-$projectTag
+```
+
+### Create Network Interfaces - Server01 Port01
+```
+subnet_server01_port01_dut_desc=subnet_server01_dut_port01
+subnet_server01_port01_dut_IpAddr=172.17.91.250
+
+aws ec2 create-network-interface \
+    --subnet-id $SubnetId_subnet_server01 \
+    --groups $GroupId_sg_PermitAll_name \
+    --description $subnet_server01_port01_dut_desc \
+    --private-ip-address $subnet_server01_port01_dut_IpAddr \
+
+NetworkInterfaceId_subnet_server01_dut_port01=$(aws ec2 describe-network-interfaces \
+    --filter "Name=description,Values=$subnet_server01_port01_dut_desc" \
+    --query "NetworkInterfaces[].NetworkInterfaceId" \
+    --output text)
+
+aws ec2 create-tags \
+    --resources $NetworkInterfaceId_subnet_server01_dut_port01 \
+    --tags Key=Name,Value=$subnet_server01_port01_dut_desc-$projectTag
+```
+
+## Disable Source/Destination Check
+```
+aws ec2 modify-network-interface-attribute \
+    --network-interface-id $NetworkInterfaceId_subnet_client01_dut_port01 \
+    --no-source-dest-check
+
+aws ec2 modify-network-interface-attribute \
+    --network-interface-id $NetworkInterfaceId_subnet_server01_dut_port01 \
+    --no-source-dest-check
+```
+
+#### FG Instance Type - VM02
+```
+InstanceType=c5n.large
+```
+
+### Find AMI
+
+Check AWS website, subscribe to product, check URL, obtain product id
+
+FortiGate 6.2.1 BYOL
+```
+
+productId=e5936f4a-0d69-479f-919c-d5e158bd4d12
+```
+
+
+### Check description to validate
+```
+
+aws ec2 describe-images \
+    --owners aws-marketplace \
+    --filters "Name=name,Values=*$productId*" \
+    --query 'sort_by(Images, &CreationDate)[-1].[Description]
+
+### Obtain FG AMI ID
+ImageId_FG=$(aws ec2 describe-images \
+    --owners aws-marketplace \
+    --filters "Name=name,Values=*$productId*" \
+    --query "sort_by(Images, &CreationDate)[-1].[ImageId]" \
+    --output text)
+
+aws ec2 describe-images --filters="Name=image-id,Values=$ImageId_FG"
+```
+
+### Need to improve this later
+```
+SG_FTS=sg-0580f83effa001793
+ImageId=$ImageId_FG
+```
+
+### FG01
+
+```
+InstanceName=FG01_VM02
+
+aws ec2 run-instances \
+    --image-id $ImageId \
+    --count 1 \
+    --instance-type $InstanceType \
+    --key-name $pubkey_name \
+    --security-group-ids $SG_FTS \
+    --subnet-id $SubnetId_subnet_mgmt \
+    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$InstanceName},{Key=project,Value=$projectTag}]"
+
+InstanceId=$(aws ec2 describe-instances \
+    --filters "Name=tag:Name,Values=$InstanceName" \
+    --query "Reservations[].Instances[].InstanceId" \
+    --output text)
+
+aws ec2 stop-instances \
+    --instance-ids $InstanceId
+```
+
+### Attach ENIs
+```
+aws ec2 attach-network-interface \
+    --network-interface-id $NetworkInterfaceId_subnet_client01_dut_port01 \
+    --instance-id $InstanceId \
+    --device-index 1
+
+aws ec2 attach-network-interface \
+    --network-interface-id $NetworkInterfaceId_subnet_server01_dut_port01 \
+    --instance-id $InstanceId \
+    --device-index 2
+
+aws ec2 start-instances \
+    --instance-ids $InstanceId
+```
+
+#### NEED TO IMPROVE, BOOTSTRAP FG WITH LIC AND INITIAL CONFI
+
+- Change port2 and port3 to DHCP
+- Create zone
+- Create routes
+- Create policy
+
+### TEST IS READY TO RUN
+
+
+
+
